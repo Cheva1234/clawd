@@ -4,6 +4,8 @@ A small pixel pet that floats on your desktop while you use [Claude Code](https:
 
 > **Unofficial fan project.** Clawd is the Claude Code mascot and belongs to Anthropic. This project is not affiliated with, endorsed by, or sponsored by Anthropic or ElevenLabs.
 
+![Clawd's speech bubble while working, when done, when it needs you, and while listening](docs/clawd.png)
+
 ## What it does
 - **Shows the session.** A speech bubble over the pet: a status badge (idle, thinking, working, needs you, done, failed), a live ticker of the current action (`EDITS gigs.ts`, `RUNS npm test`), and `actions · files changed · time`.
 - **Speaks Claude's own words.** After a reply it shows and speaks the reply itself, word for word: up to about 300 characters whole, otherwise the first whole sentences and "The full answer is in the terminal." No model rewrites it, so it always matches the terminal.
