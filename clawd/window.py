@@ -102,6 +102,25 @@ class _Bubble(QWidget):
             p.drawRect(self._tail_x - half, body.height() - 2 + i * 3, half * 2, 3)
 
 
+class _Quote(QLabel):
+    """The summary text with an accent-coloured bar on its left (Qt stylesheet borders do not paint here)."""
+
+    BAR = 3
+
+    def __init__(self) -> None:
+        super().__init__("")
+        self._accent = QColor(ACCENT["dim"])
+        self.setContentsMargins(self.BAR + 8, 2, 0, 2)
+
+    def set_accent(self, color: str) -> None:
+        self._accent = QColor(color)
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        QPainter(self).fillRect(0, 2, self.BAR, max(0, self.height() - 4), self._accent)
+
+
 class _Face(QWidget):
     """The portrait: Clawd's head on a small dark tile."""
 
@@ -274,7 +293,7 @@ class ClawdWindow(QWidget):
         self._ticker = QLabel("")
         self._headline = QLabel("")
         self._headline.setWordWrap(True)
-        self._body = QLabel("")
+        self._body = _Quote()
         self._body.setWordWrap(True)
         self._stats = QLabel("")
         self.transcript_label = QLabel("")
@@ -321,9 +340,8 @@ class ClawdWindow(QWidget):
         self.panel.set_accent(view.accent)
         self._set_text(self._ticker, view.ticker, f"color: {color}; {_MONO} font-size: 11px;")
         self._set_text(self._headline, view.headline, "color: #f1f5f9; font-size: 15px; font-weight: bold;")
-        self._set_text(
-            self._body, view.body, f"color: #cdd3e0; border-left: 3px solid {color}; padding: 2px 0px 2px 8px;"
-        )
+        self._body.set_accent(color)
+        self._set_text(self._body, view.body, "color: #cdd3e0;")
         self._set_text(
             self._stats, f"◆ {view.stats}" if view.stats else None, f"color: {color}; {_MONO} font-size: 11px;"
         )

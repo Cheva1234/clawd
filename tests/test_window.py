@@ -201,3 +201,26 @@ def test_live_tag_shows_whether_the_mic_is_open(win):
     assert win.live_text() == "LIVE"
     win.set_live(False)
     assert win.live_text() == "MUTED"
+
+
+def _pixel_in_window(win, widget, x, y):
+    """The colour of the rendered window at (x, y) inside `widget`."""
+    point = widget.mapTo(win, QPoint(x, y))
+    return win.grab().toImage().pixelColor(point.x(), point.y()).name()
+
+
+def test_the_quote_bar_is_drawn_beside_the_body_in_the_accent_colour(win):
+    win.show()
+    win.apply_view(View(badge="WORKING", accent="orange", body="Added GET /gigs with cursor pagination."))
+    body = win._body
+    assert _pixel_in_window(win, body, 1, body.height() // 2) == "#d77757"
+    win.apply_view(View(badge="DONE", accent="green", body="Added GET /gigs with cursor pagination."))
+    assert _pixel_in_window(win, body, 1, body.height() // 2) == "#4ade80"
+    # and the text itself is pushed to the right of the bar
+    assert _pixel_in_window(win, body, 40, body.height() // 2) != "#4ade80"
+
+
+def test_the_quote_bar_is_not_drawn_when_there_is_no_body(win):
+    win.show()
+    win.apply_view(View(badge="WORKING", accent="orange", ticker="EDITS gigs.ts"))
+    assert not win._body.isVisible()
