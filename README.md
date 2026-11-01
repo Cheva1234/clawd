@@ -10,6 +10,7 @@ A small pixel pet that floats on your desktop while you use [Claude Code](https:
 - **Shows the session.** A speech bubble over the pet: a status badge (idle, thinking, working, needs you, done, failed), a live ticker of the current action (`EDITS gigs.ts`, `RUNS npm test`), and `actions · files changed · time`.
 - **Speaks Claude's own words.** After a reply it shows and speaks the reply itself, word for word: up to about 300 characters whole, otherwise the first whole sentences and "The full answer is in the terminal." No model rewrites it, so it always matches the terminal.
 - **A real-time call.** While unmuted the mic is live and you just talk. A small local detector decides when you are speaking, so only speech is sent for transcription. When you pause you get a short countdown (1.5 s) with Cancel, then your words go into the session as if you typed them. Talk over Clawd and it stops speaking. After 2 minutes of silence the call mutes itself.
+- **Shows your Claude usage limits.** One small line in the bubble, `Claude 5h 34% · week 82% · resets Mon 1 pm`, naming the window you are closest to. It turns yellow from 80% and red from 95%. It appears for subscription accounts, which have these limits.
 - **Safe by default.** Nothing is sent to Claude without the countdown. While Claude waits for you to answer a permission prompt, speech is ignored.
 
 ## Requirements

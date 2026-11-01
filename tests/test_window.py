@@ -224,3 +224,15 @@ def test_the_quote_bar_is_not_drawn_when_there_is_no_body(win):
     win.show()
     win.apply_view(View(badge="WORKING", accent="orange", ticker="EDITS gigs.ts"))
     assert not win._body.isVisible()
+
+
+def test_the_usage_line_shows_with_its_level_colour_and_hides_without_data(win):
+    win.show()
+    win.apply_view(View(badge="IDLE", accent="dim", usage="Claude 5h 34% · week 82%", usage_level="warn"))
+    assert win.usage_line() == "Claude 5h 34% · week 82%" and "#facc15" in win.usage_style()
+    win.apply_view(View(badge="IDLE", accent="dim", usage="Claude week 97%", usage_level="high"))
+    assert "#f0605a" in win.usage_style()
+    win.apply_view(View(badge="IDLE", accent="dim", usage="Claude 5h 10%", usage_level="ok"))
+    assert "#facc15" not in win.usage_style() and "#f0605a" not in win.usage_style()
+    win.apply_view(View(badge="IDLE", accent="dim"))
+    assert win.usage_line() == "" and not win._usage.isVisible()

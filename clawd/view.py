@@ -1,8 +1,9 @@
 """Pure: (state, session facts, time) -> what the panel shows."""
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
 from typing import Literal
 
-from clawd.format import short_target, spoken_text, stats_text, thinking_text, ticker_text
+from clawd.format import short_target, spoken_text, stats_text, thinking_text, ticker_text, usage_text
 from clawd.session import Session
 from clawd.state import State
 
@@ -29,6 +30,8 @@ class View:
     headline: str | None = None
     body: str | None = None
     stats: str | None = None
+    usage: str | None = None  # Claude's usage limits, one line
+    usage_level: str | None = None  # ok, warn or high
 
 
 def _live_stats(s: Session, now: float) -> str | None:
@@ -46,8 +49,11 @@ def _result(s: Session) -> tuple[str | None, str | None, str | None] | None:
     return None
 
 
-def build_view(state: State, s: Session, now: float) -> View:
+def build_view(state: State, s: Session, now: float, wall: datetime | None = None) -> View:
     view = _build(state, s, now)
+    usage = usage_text(s.limits, wall or datetime.now(timezone.utc))
+    if usage:
+        view = replace(view, usage=usage[0], usage_level=usage[1])
     if s.notice and state != "working":
         return replace(view, ticker=s.notice)
     return view

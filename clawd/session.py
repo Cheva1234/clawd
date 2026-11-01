@@ -18,9 +18,13 @@ class Session:
     reply: str = ""
     outcome: str | None = None  # how the last turn ended: answer, error, refusal, aborted
     notice: str | None = None  # a one-line message for the ticker (for example a voice problem)
+    limits: list = field(default_factory=list)  # Claude's rate-limit windows, as the plugin last sent them
 
     def on_event(self, event: dict, now: float) -> None:
         kind = event.get("kind")
+        if kind == "usage":  # a reading of the account, not activity in the session: leaves the quiet timer alone
+            self.limits = list(event.get("limits") or [])
+            return
         self.last_event = now
         if kind == "turn.start":
             self.actions, self.files = 0, set()

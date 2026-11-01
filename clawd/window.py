@@ -296,9 +296,10 @@ class ClawdWindow(QWidget):
         self._body = _Quote()
         self._body.setWordWrap(True)
         self._stats = QLabel("")
+        self._usage = QLabel("")
         self.transcript_label = QLabel("")
         self.transcript_label.setWordWrap(True)
-        for label in (self._ticker, self._headline, self._body, self._stats, self.transcript_label):
+        for label in (self._ticker, self._headline, self._body, self._stats, self._usage, self.transcript_label):
             label.hide()
             col.addWidget(label)
 
@@ -345,7 +346,15 @@ class ClawdWindow(QWidget):
         self._set_text(
             self._stats, f"◆ {view.stats}" if view.stats else None, f"color: {color}; {_MONO} font-size: 11px;"
         )
+        usage_color = {"warn": ACCENT["yellow"], "high": ACCENT["red"]}.get(view.usage_level or "", "#8b95ab")
+        self._set_text(self._usage, view.usage, f"color: {usage_color}; font-size: 10px;")
         self._refresh_layout()
+
+    def usage_line(self) -> str:
+        return self._usage.text()
+
+    def usage_style(self) -> str:
+        return self._usage.styleSheet()
 
     def set_project(self, name: str) -> None:
         self._name_plain = f"CLAWD / {name}" if name else "CLAWD"

@@ -151,3 +151,12 @@ def test_set_notice_shows_in_the_view_and_a_new_turn_clears_it(ctl):
 def test_a_notice_event_from_the_plugin_shows_in_the_view(ctl):
     ctl.handle(ev("notice", text="VOICE: not sent, Claude is waiting for you"))
     assert ctl.view.ticker == "VOICE: not sent, Claude is waiting for you"
+
+
+def test_a_usage_event_updates_the_view_without_touching_the_state(ctl):
+    ctl.handle(ev("tool.call", tool="Bash", target="ls"))
+    seen = states(ctl)
+    ctl.handle(ev("usage", limits=[{"kind": "seven_day", "percentUsed": 97, "resetsAt": None}]))
+    assert ctl.state == "working" and seen == []
+    assert ctl.view.usage == "Claude week 97%" and ctl.view.usage_level == "high"
+    assert ctl.view.ticker == "RUNS ls"

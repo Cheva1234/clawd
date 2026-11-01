@@ -136,3 +136,19 @@ def test_a_voice_notice_replaces_the_ticker_until_the_next_turn():
     assert build_view("idle", s, 500.0).ticker == "VOICE: daily voice limit reached"
     s.on_event(ev("turn.start"), 600.0)
     assert build_view("thinking", s, 601.0).ticker is None
+
+
+def test_usage_limits_show_on_every_state_and_default_to_nothing():
+    s = Session()
+    assert build_view("idle", s, 0.0).usage is None
+    s.on_event(ev("usage", limits=[{"kind": "five_hour", "percentUsed": 34, "resetsAt": None}, {"kind": "seven_day", "percentUsed": 82, "resetsAt": None}]), 1.0)
+    for state in ("idle", "working", "done"):
+        v = build_view(state, s, 2.0)
+        assert v.usage == "Claude 5h 34% · week 82%" and v.usage_level == "warn"
+
+
+def test_a_usage_reading_does_not_reset_the_quiet_timer():
+    s = worked()
+    s.on_event(ev("tool.done", tool="Edit"), 96.0)
+    s.on_event(ev("usage", limits=[]), 130.0)
+    assert build_view("thinking", s, 141.7).ticker == "THINKING… 45 s"  # still counted from the last real event

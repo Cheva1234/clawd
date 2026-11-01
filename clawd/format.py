@@ -1,5 +1,6 @@
 """Small, pure text helpers for the panel: ticker, stats line, thinking counter, fallback summary."""
 import re
+from datetime import datetime, timedelta, timezone, tzinfo
 
 _VERBS = {
     "Edit": "EDITS",
@@ -89,3 +90,57 @@ def spoken_text(reply: str, limit: int = SPOKEN_MAX) -> str:
     if not kept:  # the very first sentence is longer than the limit: cut it at a word
         kept = plain[: limit - 1].rsplit(" ", 1)[0] + "…"
     return f"{kept} {FULL_ANSWER_NOTE}"
+
+
+_WINDOWS = {"five_hour": "5h", "seven_day": "week", "spend_limit": "spend"}
+
+
+_WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")  # not strftime: Qt switches the locale (Thai, say)
+
+
+def _clock_text(moment: datetime) -> str:
+    hour = moment.hour % 12 or 12
+    minutes = f":{moment.minute:02d}" if moment.minute else ""
+    return f"{_WEEKDAYS[moment.weekday()]} {hour}{minutes} {'am' if moment.hour < 12 else 'pm'}"
+
+
+def _reset_text(resets_at: object, wall: datetime, tz: tzinfo | None) -> str:
+    if not isinstance(resets_at, str):
+        return ""
+    try:
+        moment = datetime.fromisoformat(resets_at.replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    left = moment - wall
+    if left <= timedelta(0):
+        return ""
+    minutes = int(left.total_seconds() // 60)
+    if minutes < 60:
+        return f"in {minutes}m"
+    if left < timedelta(hours=24):
+        hours, rest = divmod(minutes, 60)
+        return f"in {hours}h {rest}m" if rest else f"in {hours}h"
+    return _clock_text(moment.astimezone(tz))
+
+
+def usage_text(limits: object, wall: datetime | None = None, tz: tzinfo | None = None) -> tuple[str, str] | None:
+    """`Claude 5h 34% · week 82% · resets Mon 1 pm` and how worried to look: ok, warn (80%) or high (95%)."""
+    wall = wall or datetime.now(timezone.utc)
+    parts: list[str] = []
+    busiest: tuple[float, object] | None = None
+    for item in limits if isinstance(limits, list) else []:
+        if not isinstance(item, dict):
+            continue
+        label, percent = _WINDOWS.get(item.get("kind", "")), item.get("percentUsed")
+        if label is None or not isinstance(percent, (int, float)) or isinstance(percent, bool):
+            continue
+        parts.append(f"{label} {percent:.0f}%")
+        if busiest is None or percent > busiest[0]:
+            busiest = (percent, item.get("resetsAt"))
+    if busiest is None:
+        return None
+    text = "Claude " + " · ".join(parts)
+    reset = _reset_text(busiest[1], wall, tz)
+    if reset:
+        text += f" · resets {reset}"
+    return text, "high" if busiest[0] >= 95 else "warn" if busiest[0] >= 80 else "ok"

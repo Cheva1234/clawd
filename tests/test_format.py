@@ -1,4 +1,6 @@
-from clawd.format import FULL_ANSWER_NOTE, duration_text, spoken_text, stats_text, thinking_text, ticker_text
+from datetime import datetime, timezone
+
+from clawd.format import FULL_ANSWER_NOTE, duration_text, spoken_text, stats_text, thinking_text, ticker_text, usage_text
 
 
 def test_ticker_uses_a_verb_and_the_file_name_only():
@@ -68,3 +70,47 @@ def test_spoken_text_strips_markdown_and_code():
 def test_spoken_text_of_empty_or_code_only_reply_is_blank():
     assert spoken_text("") == "" and spoken_text("   ") == ""
     assert spoken_text("```\nonly code\n```") == ""
+
+
+NOW = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
+
+
+def window(kind, percent, resets):
+    return {"kind": kind, "percentUsed": percent, "resetsAt": resets}
+
+
+def test_usage_text_names_each_window_and_the_reset_of_the_busiest_one():
+    limits = [window("five_hour", 34, "2026-11-01T14:30:00Z"), window("seven_day", 82, "2026-11-03T06:00:00Z")]
+    text, level = usage_text(limits, NOW, timezone.utc)
+    assert text == "Claude 5h 34% · week 82% · resets Tue 6 am" and level == "warn"
+
+
+def test_a_reset_within_a_day_is_shown_as_time_left():
+    text, _ = usage_text([window("five_hour", 90, "2026-11-01T14:30:00Z"), window("seven_day", 10, "2026-11-08T00:00:00Z")], NOW, timezone.utc)
+    assert text == "Claude 5h 90% · week 10% · resets in 2h 30m"
+    text, _ = usage_text([window("five_hour", 90, "2026-11-01T12:42:00Z")], NOW, timezone.utc)
+    assert text.endswith("resets in 42m")
+
+
+def test_usage_levels_are_ok_warn_and_high():
+    def level(p):
+        return usage_text([window("five_hour", p, "2026-11-01T14:00:00Z")], NOW, timezone.utc)[1]
+
+    assert [level(79.9), level(80), level(94.9), level(95), level(100)] == ["ok", "warn", "warn", "high", "high"]
+
+
+def test_the_level_follows_the_busiest_window():
+    _, level = usage_text([window("five_hour", 10, "2026-11-01T14:00:00Z"), window("seven_day", 96, "2026-11-03T00:00:00Z")], NOW, timezone.utc)
+    assert level == "high"
+
+
+def test_no_limits_no_unknown_windows_and_bad_entries_are_left_out():
+    assert usage_text([], NOW) is None and usage_text(None, NOW) is None
+    assert usage_text([{"kind": "mystery", "percentUsed": 50}, {"kind": "five_hour"}, "junk"], NOW) is None
+    text, _ = usage_text([window("spend_limit", 40, None)], NOW)
+    assert text == "Claude spend 40%"
+
+
+def test_a_reset_that_already_passed_is_not_shown():
+    text, _ = usage_text([window("five_hour", 50, "2026-11-01T11:00:00Z")], NOW, timezone.utc)
+    assert text == "Claude 5h 50%"

@@ -45,6 +45,25 @@ function post($: any, ev: Record<string, unknown>) {
   queue = queue.then(() => send($, ev))
 }
 
+// Claude's usage limits (the 5-hour and weekly windows) for the bubble. An account without them sends an empty list.
+function toLimits(windows: any): Record<string, unknown>[] {
+  return (Array.isArray(windows) ? windows : []).map((w: any) => ({
+    kind: w.kind,
+    percentUsed: w.percentUsed,
+    resetsAt: w.resetsAt,
+  }))
+}
+
+async function usageSoon($: any) {
+  try {
+    await $.clock.sleep(2000) // the app needs a moment before it listens on the socket
+    const usage = await $.session.usage()
+    post($, { kind: 'usage', limits: toLimits(usage.rateLimits) })
+  } catch {
+    // aborted by a reload or the end of the session, or no usage figures: nothing to show
+  }
+}
+
 async function closeApp($: any) {
   await send($, { kind: 'quit' })
   running = false
@@ -148,6 +167,7 @@ export const register: Register = on => {
     if (typeof launch === 'string') return { text: launch }
     running = true
     void watchApp($, launch)
+    void usageSoon($)
     return { text: 'Clawd opened. /clawd again closes it.' }
   })
 
@@ -156,6 +176,11 @@ export const register: Register = on => {
     const composed = await next(e)
     if (!running) return composed
     return { sections: [...composed.sections, { id: 'clawd-voice', text: VOICE_NOTE, scope: 'session' as const }] }
+  })
+
+  on('session.measure', async ($, e, next) => {
+    post($, { kind: 'usage', limits: toLimits(e.rateLimits) })
+    return next(e)
   })
 
   on('turn.start', async ($, e, next) => {

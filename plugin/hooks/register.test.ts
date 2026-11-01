@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 // Nothing sits beneath the plugin in a test: each `on` below stands for the engine.
 async function boot($: any, on: any) {
@@ -11,11 +11,15 @@ async function boot($: any, on: any) {
   let runOut = '/run/user/1000\nvenv\n' // what the environment check prints: the runtime dir, then 'venv' if the checkout has one
   let spawnFails = false
   const toasts: string[] = []
+  const clock = mock.clock(on)
+  let usageNow: any = { startedAt: 0, context: {}, rateLimits: [{ kind: 'five_hour', percentUsed: 34, resetsAt: '2026-11-01T14:30:00Z' }, { kind: 'seven_day', percentUsed: 82, resetsAt: '2026-11-03T06:00:00Z' }] }
   on('command.register', () => ({ value: { command: 'clawd' } }))
   on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
   on('tool.call', () => ({ result: {} }))
   on('session.end', () => ({ sessionId: 's1' }))
   on('classic.Notification', () => ({}))
+  on('session.usage', () => ({ value: usageNow }))
+  on('session.measure', (_: any, e: any) => ({ changed: e.changed }))
   on('process.run', () => ({ value: { exitCode: 0, stdout: runOut, stderr: '', isStdoutTruncated: false } }))
   on('ui.toast', (_: any, e: any) => {
     toasts.push(String(e.text ?? e))
@@ -50,6 +54,7 @@ async function boot($: any, on: any) {
     posted,
     submitted,
     toasts,
+    clock,
     printLine,
     setHang: (v: boolean) => (hang = v),
     setRun: (v: string) => (runOut = v),
@@ -256,4 +261,37 @@ test('if the app cannot be started the user is told how to install it', async ($
   await $.command.run({ command: 'clawd', args: '' })
   await settle(() => toasts.length >= 1)
   expect(toasts[0]).toMatch(/pipx install/)
+})
+
+
+const LIMITS = [
+  { kind: 'five_hour', percentUsed: 34, resetsAt: '2026-11-01T14:30:00Z' },
+  { kind: 'seven_day', percentUsed: 82, resetsAt: '2026-11-03T06:00:00Z' },
+]
+
+test('a moment after the app opens, Claude\'s usage limits are sent to it', async ($, on) => {
+  const { posted, clock } = await boot($, on)
+  await $.command.run({ command: 'clawd', args: '' })
+  await clock.advance(2000) // the app needs a moment before it listens on the socket
+  await settle(() => posted.some((p: any) => p.kind === 'usage'))
+  expect(posted.find((p: any) => p.kind === 'usage')).toEqual({ kind: 'usage', limits: LIMITS })
+})
+
+test('when a limit window moves, the new figures are sent', async ($, on) => {
+  const { posted } = await boot($, on)
+  await $.command.run({ command: 'clawd', args: '' })
+  await $.session.measure({ changed: ['rateLimits'], rateLimits: [{ kind: 'five_hour', percentUsed: 36, resetsAt: '2026-11-01T14:30:00Z' }] } as any)
+  await settle(() => posted.some((p: any) => p.kind === 'usage'))
+  expect(posted.filter((p: any) => p.kind === 'usage').at(-1)).toEqual({
+    kind: 'usage',
+    limits: [{ kind: 'five_hour', percentUsed: 36, resetsAt: '2026-11-01T14:30:00Z' }],
+  })
+})
+
+test('an account without limits (an API key) sends an empty list, so nothing is shown', async ($, on) => {
+  const { posted, clock } = await boot($, on)
+  await $.command.run({ command: 'clawd', args: '' })
+  await $.session.measure({ changed: ['context'], rateLimits: [] } as any)
+  await settle(() => posted.some((p: any) => p.kind === 'usage'))
+  expect(posted.find((p: any) => p.kind === 'usage').limits).toEqual([])
 })

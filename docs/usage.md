@@ -21,7 +21,7 @@
 - Nothing is spoken while muted or closed.
 
 ## What the bubble shows
-Status badge (IDLE, LISTENING, THINKING, WORKING, NEEDS YOU, SPEAKING, DONE, FAILED), a ticker of the current action, the text above, and `actions · files changed · time`. Right-click Clawd to hide or show the bubble; drag to move it.
+Status badge (IDLE, LISTENING, THINKING, WORKING, NEEDS YOU, SPEAKING, DONE, FAILED), a ticker of the current action, the text above, `actions · files changed · time`, and your Claude usage limits (`Claude 5h 34% · week 82% · resets Mon 1 pm`: yellow from 80%, red from 95%; shown only for accounts that have limits). Right-click Clawd to hide or show the bubble; drag to move it.
 
 ## Settings (optional): `~/.config/cheva-clawd/config.json`
 ```json
