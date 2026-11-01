@@ -1,0 +1,23 @@
+{
+  "name": "clawd",
+  "owner": {
+    "name": "Cheva1234"
+  },
+  "metadata": {
+    "description": "Clawd, a floating pixel pet for Claude Code with a voice call"
+  },
+  "plugins": [
+    {
+      "name": "clawd",
+      "source": "./plugin",
+      "description": "A floating pixel pet for Claude Code that shows what Claude is doing and lets you talk to it like a phone call",
+      "version": "0.1.0",
+      "license": "MIT",
+      "keywords": [
+        "voice",
+        "pet",
+        "elevenlabs"
+      ]
+    }
+  ]
+}

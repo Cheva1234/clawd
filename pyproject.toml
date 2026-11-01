@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clawd"
+version = "0.1.0"
+description = "Clawd: a floating pixel pet for Claude Code that you can talk to"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = ["PySide6", "httpx", "websockets"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-qt"]
+
+[project.scripts]
+clawd = "clawd.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/Cheva1234/clawd"
+
+[tool.setuptools]
+packages = ["clawd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

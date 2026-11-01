@@ -1,0 +1,16 @@
+{
+  "name": "clawd",
+  "version": "0.1.0",
+  "description": "Floating Clawd desktop pet: /clawd opens it, it follows the session and talks",
+  "author": {
+    "name": "Cheva1234"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Cheva1234/clawd",
+  "keywords": [
+    "voice",
+    "pet",
+    "elevenlabs",
+    "desktop"
+  ]
+}
